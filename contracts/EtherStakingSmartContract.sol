@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 contract EtherStaking {
     struct Stake {
         uint256 amount;
         uint256 startTime;
+        uint256 reward;
     }
 
     mapping(address => Stake) public stakes;
@@ -19,8 +20,8 @@ contract EtherStaking {
         rewardRate = msg.value;
     }
 
-    function setRewardRate(uint256 _rewardRate) external {
-        rewardRate = _rewardRate;
+    function setRewardRate(uint256 _rate) external {
+        rewardRate = _rate;
     }
 
     function stake(uint256 _startTime) external payable {
@@ -30,15 +31,19 @@ contract EtherStaking {
         userStake.amount += msg.value;
         userStake.startTime = _startTime;
 
+        uint256 reward = calculateReward(msg.sender);
+        userStake.reward = reward;
+
         emit Staked(msg.sender, msg.value, _startTime);
     }
 
     function calculateReward(address user) public view returns (uint256) {
         Stake storage userStake = stakes[user];
-        uint256 stakingDuration = block.timestamp - userStake.startTime;
-        uint256 reward = userStake.amount * stakingDuration;
 
-        require(reward + userStake.amount > rewardRate, "Insufficient funds");
+        uint256 stakingDuration = block.timestamp - userStake.startTime;
+
+        uint256 reward = (userStake.amount * stakingDuration * rewardRate) /
+            1 ether;
 
         return reward;
     }
